@@ -1,0 +1,20 @@
+apiVersion: v2
+name: image-hosting
+description: A Helm chart for the Image Hosting Application
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: frontend
+    version: 0.1.0
+    repository: file://../charts/frontend
+  - name: backend
+    version: 0.1.0
+    repository: file://../charts/backend
+  - name: service
+    version: 0.1.0
+    repository: file://../charts/service
+  - name: minio
+    version: 12.8.0
+    repository: https://charts.bitnami.com/bitnami
+    condition: minio.enabled

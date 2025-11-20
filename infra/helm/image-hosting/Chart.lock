@@ -1,0 +1,15 @@
+dependencies:
+- name: frontend
+  repository: file://../charts/frontend
+  version: 0.1.0
+- name: backend
+  repository: file://../charts/backend
+  version: 0.1.0
+- name: service
+  repository: file://../charts/service
+  version: 0.1.0
+- name: minio
+  repository: https://charts.bitnami.com/bitnami
+  version: 12.8.0
+digest: sha256:aa156c7dcedaade3f8f2826a1ad7828024f8a3799863d1886b210349192bed24
+generated: "2025-11-20T15:23:42.143115+08:00"

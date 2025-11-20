@@ -1,0 +1,25 @@
+image:
+  repository: image-hosting-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 50051
+
+env:
+  MINIO_ENDPOINT: "image-hosting-minio"
+  MINIO_PORT: "9000"
+  MINIO_BUCKET_NAME: "images"
+
+secrets:
+  MINIO_ACCESS_KEY: "minioadmin"
+  MINIO_SECRET_KEY: "minioadmin"
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

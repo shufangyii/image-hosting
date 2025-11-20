@@ -1,0 +1,34 @@
+image:
+  repository: image-hosting-backend
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 3000
+
+env:
+  THUMBNAIL_GRPC_URL: "service:50051"
+  MINIO_ENDPOINT: "minio"
+  MINIO_PORT: "9000"
+  MINIO_BUCKET: "images"
+  # Add other non-sensitive env vars here
+
+# Sensitive environment variables to be managed via Secrets
+secrets:
+  MINIO_ACCESS_KEY: "minioadmin"
+  MINIO_SECRET_KEY: "minioadmin"
+  RESEND_API_KEY: ""
+  CLERK_WEBHOOK_SECRET: ""
+  SUPABASE_URL: ""
+  SUPABASE_SERVICE_ROLE_KEY: ""
+  UPSTASH_REDIS_REST_URL: ""
+  UPSTASH_REDIS_REST_TOKEN: ""
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

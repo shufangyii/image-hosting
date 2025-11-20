@@ -1,0 +1,20 @@
+frontend:
+  service:
+    type: ClusterIP
+
+backend:
+  env:
+    MINIO_ENDPOINT: "image-hosting-minio" # Service name when installed as dependency
+    MINIO_PORT: "9000"
+
+service:
+  replicaCount: 2
+  env:
+    MINIO_ENDPOINT: "http://image-hosting-minio:9000"
+
+minio:
+  enabled: true
+  auth:
+    rootUser: minioadmin
+    rootPassword: minioadmin
+  defaultBuckets: "images"
