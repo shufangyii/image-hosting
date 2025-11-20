@@ -1,0 +1,21 @@
+[package]
+name = "service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+# For Minio
+aws-config = "1.1.7"
+aws-sdk-s3 = "1.17.0"
+http = "0.2.9"
+# For image processing
+image = "0.25.0"
+# For env vars
+dotenv = "0.15.0"
+# For gRPC
+tonic = "0.12.0"
+prost = "0.13.0"
+
+[build-dependencies]
+tonic-build = "0.12.0"

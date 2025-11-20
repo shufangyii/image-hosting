@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package thumbnail_service;
+
+message GenerateThumbnailRequest {
+  string object_name = 1; // The object name/path in Minio
+}
+
+message GenerateThumbnailResponse {
+  string thumbnail_url = 1;
+}
+
+service ThumbnailService {
+  rpc GenerateThumbnail (GenerateThumbnailRequest) returns (GenerateThumbnailResponse);
+}
