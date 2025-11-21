@@ -1,77 +1,61 @@
-# Image Hosting 项目 Terraform 指南
+# Terraform Infrastructure Guide (中文版)
 
-## 什么是 Terraform？
-Terraform 是一个 **基础设施即代码 (IaC)** 工具。
-如果说 Helm 是管理 Kubernetes **内部** 应用的工具，那么 Terraform 通常用于管理 **外部** 基础设施（如 AWS EC2, S3, RDS，或者 Kubernetes 集群本身）。
-
-在这个项目中，我们使用 Terraform 来：
-1.  创建一个 Kubernetes **Namespace** (`image-hosting`)。
-2.  使用 Terraform 的 Helm Provider 来部署我们在上一步创建的 **Helm Chart**。
-
-这样做的好处是，你可以用代码管理整个生命周期，包括命名空间的创建和应用的部署。
+本项目使用 Terraform 来管理 Kubernetes 基础设施。为了支持多环境（Dev/Staging/Prod），我们采用了 **Module + 目录分离** 的架构。
 
 ## 目录结构
 
 ```text
 infra/terraform/
-├── main.tf        # 定义资源 (Namespace, Helm Release)
-├── providers.tf   # 定义插件 (Kubernetes, Helm)
-├── variables.tf   # 定义变量 (Kubeconfig 路径, Context)
-└── README.md      # 本指南
+├── modules/                 # 通用逻辑模块
+│   └── image-hosting/       # 核心应用模块
+│       ├── main.tf          # 资源定义 (Namespace, Helm Release)
+│       ├── variables.tf     # 输入变量
+│       └── versions.tf      # Provider 版本要求
+└── environments/            # 具体环境配置
+    ├── dev/                 # 开发环境
+    │   ├── main.tf          # 调用 module
+    │   ├── providers.tf     # Backend 和 Provider 配置
+    │   └── variables.tf     # 变量定义
+    ├── staging/             # 预发布环境
+    └── prod/                # 生产环境
 ```
 
-## 分步使用指南
+## 快速开始
 
 ### 1. 前置条件
-- **Terraform** 已安装 (`brew install terraform`)。
-- 确保你的 Kubernetes 集群正在运行。
+*   已安装 Terraform
+*   已配置 `~/.kube/config` (或者设置 `KUBE_CONFIG_PATH`)
 
-### 2. 初始化
-进入 Terraform 目录并初始化。这会下载必要的插件（Providers）。
+### 2. 部署开发环境 (Dev)
 
+进入开发环境目录：
 ```bash
-cd infra/terraform
+cd infra/terraform/environments/dev
+```
+
+初始化（下载 Provider 和 Module）：
+```bash
 terraform init
 ```
 
-### 3. 配置变量 (可选)
-默认情况下，我们假设你使用的是 `docker-desktop` 上下文。如果你使用的是 `minikube` 或其他集群，你需要修改 `variables.tf` 或者创建一个 `terraform.tfvars` 文件：
-
-```hcl
-# terraform.tfvars
-kube_context = "minikube"
-```
-
-### 4. 计划 (Plan)
-查看 Terraform 将要执行的操作。这类似于 Helm 的 "Dry Run"。
-
+查看计划：
 ```bash
 terraform plan
 ```
-你应该能看到它计划创建一个 Namespace 和一个 Helm Release。
 
-### 5. 应用 (Apply)
-执行部署。
-
+应用更改：
 ```bash
 terraform apply
 ```
-输入 `yes` 确认。
 
-### 6. 验证
-```bash
-kubectl get ns image-hosting
-kubectl get pods -n image-hosting
-```
+### 3. 部署到其他环境
+步骤同上，只需进入 `environments/staging` 或 `environments/prod` 目录即可。
 
-### 7. 销毁 (Destroy)
-如果你想清理所有资源（包括 Namespace 和应用）：
+## CI/CD 集成
+GitHub Actions Workflow (`.github/workflows/deploy.yml`) 会根据分支自动选择环境：
+*   `feature/*` -> `dev` (需自定义触发规则，目前默认非 main/develop 走 dev)
+*   `develop` -> `staging`
+*   `main` -> `prod`
 
-```bash
-terraform destroy
-```
-
-## 为什么同时使用 Helm 和 Terraform？
-- **Helm** 擅长打包和管理应用及其依赖（微服务）。
-- **Terraform** 擅长管理基础设施状态和依赖关系。
-- 结合使用：我们用 Terraform 来“驱动” Helm。这样我们可以确保在部署 Helm Chart 之前，基础设施（如 Namespace，或者未来的云数据库）已经准备就绪。
+## 状态管理 (State)
+默认配置为本地状态 (`local`)。在生产环境中，请务必在 `providers.tf` 中配置 **Remote Backend** (如 S3)，以确保团队协作和 CI/CD 的状态一致性。

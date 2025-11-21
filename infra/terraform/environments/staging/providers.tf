@@ -1,4 +1,10 @@
 terraform {
+  # backend "s3" {
+  #   bucket = "my-terraform-state"
+  #   key    = "image-hosting/staging.tfstate"
+  #   region = "us-east-1"
+  # }
+
   required_providers {
     kubernetes = {
       source  = "hashicorp/kubernetes"

@@ -1,0 +1,83 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  # --- [INPUT REQUIRED] ---
+  DOCKER_REGISTRY: "docker.io"  # Or ghcr.io, etc.
+  DOCKER_USERNAME: "${{ secrets.DOCKER_USERNAME }}"
+  DOCKER_PASSWORD: "${{ secrets.DOCKER_PASSWORD }}"
+  # ------------------------
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: Build and Push Images
+        run: |
+          TAG="sha-${GITHUB_SHA::7}"
+          
+          # Build Frontend
+          docker build -t ${{ env.DOCKER_REGISTRY }}/image-hosting-frontend:$TAG apps/frontend
+          docker push ${{ env.DOCKER_REGISTRY }}/image-hosting-frontend:$TAG
+          
+          # Build Backend
+          docker build -t ${{ env.DOCKER_REGISTRY }}/image-hosting-backend:$TAG apps/backend
+          docker push ${{ env.DOCKER_REGISTRY }}/image-hosting-backend:$TAG
+          
+          # Build Service
+          docker build -t ${{ env.DOCKER_REGISTRY }}/image-hosting-service:$TAG service
+          docker push ${{ env.DOCKER_REGISTRY }}/image-hosting-service:$TAG
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Inject Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Set Environment
+        id: env
+        run: |
+          if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
+            echo "dir=infra/terraform/environments/prod" >> $GITHUB_OUTPUT
+          elif [[ ${{ github.ref }} == 'refs/heads/develop' ]]; then
+            echo "dir=infra/terraform/environments/staging" >> $GITHUB_OUTPUT
+          else
+            echo "dir=infra/terraform/environments/dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Terraform Init
+        working-directory: ${{ steps.env.outputs.dir }}
+        run: terraform init
+        env:
+          # If using S3 backend, you might need AWS credentials here
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Terraform Apply
+        working-directory: ${{ steps.env.outputs.dir }}
+        run: |
+          TAG="sha-${GITHUB_SHA::7}"
+          terraform apply \
+            -var="app_version=$TAG" \
+            -var="kube_config_path=~/.kube/config" \
+            -auto-approve
